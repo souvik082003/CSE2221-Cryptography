@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptography Lab | MUJ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #0b0f1a; --card: #161b2c; --accent: #00d2ff; --text-p: #94a3b8; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: white; margin: 0; padding: 50px 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .header { text-align: center; margin-bottom: 60px; }
+        .header h1 { font-size: 3rem; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; margin: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1100px; width: 100%; }
+        .cipher-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; text-decoration: none; color: white; transition: 0.3s ease; position: relative; }
+        .cipher-card:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: 0 15px 30px rgba(0, 210, 255, 0.1); }
+        .icon-box { width: 45px; height: 45px; background: rgba(0, 210, 255, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent); margin-bottom: 15px; }
+        .tag { font-size: 0.65rem; text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cryptography Portal</h1>
+        <p style="color: var(--text-p)">Interactive Practical Modules for CSE Students</p>
+    </div>
+
+    <div class="grid">
+        <a href="Vigenere.html" class="cipher-card">
+            <span class="tag">Substitution</span>
+            <div class="icon-box"><i class="fas fa-key"></i></div>
+            <h3>Vigenère Cipher</h3>
+            <p style="color: var(--text-p); font-size: 0.85rem;">Polyalphabetic encryption simulation.</p>
+        </a>
+
+        <a href="Hill.html" class="cipher-card">
+            <span class="tag">Linear Algebra</span>
+            <div class="icon-box"><i class="fas fa-th"></i></div>
+            <h3>Hill Cipher</h3>
+            <p style="color: var(--text-p); font-size: 0.85rem;">Matrix-based modular encryption.</p>
+        </a>
+
+        <a href="Play.html" class="cipher-card">
+            <span class="tag">Digraph</span>
+            <div class="icon-box"><i class="fas fa-border-all"></i></div>
+            <h3>Playfair Cipher</h3>
+            <p style="color: var(--text-p); font-size: 0.85rem;">5x5 Grid-based substitution cipher.</p>
+        </a>
+
+        <a href="tranpost_railfence.html" class="cipher-card">
+            <span class="tag">Transposition</span>
+            <div class="icon-box"><i class="fas fa-wave-square"></i></div>
+            <h3>Rail Fence</h3>
+            <p style="color: var(--text-p); font-size: 0.85rem;">Zig-zag character rearrangement.</p>
+        </a>
+
+        <a href="Attacks.html" class="cipher-card">
+            <span class="tag" style="color:#f87171">Defense</span>
+            <div class="icon-box" style="color:#f87171"><i class="fas fa-user-secret"></i></div>
+            <h3>Attacks/Analysis</h3>
+            <p style="color: var(--text-p); font-size: 0.85rem;">Brute force and frequency analysis.</p>
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Master: Vigenère & Vernam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary: #38bdf8;
+            --secondary: #fbbf24;
+            --bg-dark: #0f172a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Table Styles */
+        .v-table-container {
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+
+        .v-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            user-select: none;
+        }
+
+        .v-cell {
+            width: 32px;
+            height: 32px;
+            text-align: center;
+            font-size: 11px;
+            border: 0.5px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .v-header-key {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--secondary);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .v-header-plain {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            font-weight: bold;
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            border-right: 2px solid var(--primary);
+        }
+
+        /* Animation States */
+        .active-row { background: rgba(56, 189, 248, 0.15); }
+        .active-col { background: rgba(251, 191, 36, 0.15); }
+        
+        .glow-key { background: var(--secondary) !important; color: var(--bg-dark) !important; box-shadow: 0 0 15px var(--secondary); }
+        .glow-plain { background: var(--primary) !important; color: var(--bg-dark) !important; box-shadow: 0 0 15px var(--primary); }
+        
+        .intersection {
+            background: #ffffff !important;
+            color: var(--bg-dark) !important;
+            font-weight: 800;
+            transform: scale(1.25);
+            z-index: 30;
+            box-shadow: 0 0 20px #fff;
+            border-radius: 4px;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stagger-item {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        /* Improved Input Visibility */
+        input, textarea {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #38bdf8 !important;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <header class="p-6 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center bg-slate-900/50 sticky top-0 z-50">
+        <div class="mb-4 md:mb-0">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-sky-400 to-amber-400 bg-clip-text text-transparent">
+                CipherMaster Visualizer
+            </h1>
+            <p class="text-xs text-slate-400 mono">Step-by-step cryptographic tracing</p>
+        </div>
+        <nav class="flex gap-2">
+            <button onclick="switchTab('vigenere')" id="btn-vigenere" class="px-4 py-2 rounded-md font-semibold transition-all text-sm">Vigenère</button>
+            <button onclick="switchTab('vernam')" id="btn-vernam" class="px-4 py-2 rounded-md font-semibold transition-all text-sm">Vernam (OTP)</button>
+            <button onclick="switchTab('analysis')" id="btn-analysis" class="px-4 py-2 rounded-md font-semibold transition-all text-sm">Cryptanalysis</button>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 mt-4">
+        
+        <!-- Vigenere Section -->
+        <section id="section-vigenere" class="tab-content space-y-6">
+            <div class="grid lg:grid-cols-12 gap-6">
+                
+                <!-- Interaction Panel -->
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="glass p-6 rounded-xl border-l-4 border-sky-500">
+                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            Input Configuration
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs uppercase text-slate-400 mb-1">Text Input</label>
+                                <textarea id="vig-input" class="w-full h-24 text-sm mono p-3 bg-slate-800 text-white border border-slate-700 rounded" placeholder="MESSAGE">HELLO</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs uppercase text-slate-400 mb-1">Key</label>
+                                <input id="vig-key" type="text" class="w-full text-sm mono bg-slate-800 text-white border border-slate-700 rounded px-3 py-2" value="KEY">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="initializeVigenere(true)" class="flex-1 bg-sky-600 hover:bg-sky-500 py-3 rounded-lg font-bold transition-all text-sm text-white">
+                                    Init Encrypt
+                                </button>
+                                <button onclick="initializeVigenere(false)" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-bold transition-all text-sm text-white">
+                                    Init Decrypt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Controls -->
+                    <div class="glass p-6 rounded-xl border-l-4 border-amber-500">
+                        <h2 class="text-sm font-bold mb-4 uppercase tracking-widest text-slate-400">Manual Navigation</h2>
+                        <div class="flex items-center justify-between gap-4">
+                            <button id="nav-prev" onclick="navigateStep(-1)" disabled class="flex-1 bg-slate-800 hover:bg-slate-700 p-3 rounded-lg font-bold border border-slate-700 text-white">
+                                ← Prev
+                            </button>
+                            <div class="text-center min-w-[60px]">
+                                <span id="step-counter" class="text-lg font-bold text-amber-400">0/0</span>
+                            </div>
+                            <button id="nav-next" onclick="navigateStep(1)" disabled class="flex-1 bg-slate-800 hover:bg-slate-700 p-3 rounded-lg font-bold border border-slate-700 text-white">
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-xl">
+                        <label class="block text-xs uppercase tracking-widest text-amber-400 mb-2 font-bold">Result Stream</label>
+                        <div id="vig-output" class="mono text-3xl font-bold break-all min-h-[1.5em] text-white">---</div>
+                        <div id="vig-status" class="text-[10px] text-slate-500 mt-2 uppercase tracking-tighter italic">Initialize to start...</div>
+                    </div>
+                </div>
+
+                <!-- Visual Table Panel -->
+                <div class="lg:col-span-8 glass p-2 rounded-xl overflow-hidden relative">
+                    <div class="absolute top-4 right-4 z-30 flex gap-4 text-[10px] uppercase font-bold">
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 bg-sky-500 rounded-full"></span> Plain (Side)</div>
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-500 rounded-full"></span> Key (Top)</div>
+                    </div>
+                    
+                    <div class="v-table-container overflow-auto max-h-[600px] rounded-lg border border-slate-700" id="vig-table-wrap">
+                        <table id="v-table" class="v-table mono">
+                            <!-- Generated by JS -->
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vernam Section -->
+        <section id="section-vernam" class="hidden tab-content">
+            <div class="max-w-3xl mx-auto glass p-8 rounded-xl space-y-6">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold">Vernam OTP</h2>
+                    <p class="text-slate-400 text-sm">Perfect secrecy via bitwise XOR operations.</p>
+                </div>
+                <div class="space-y-4">
+                    <input id="ver-input" type="text" class="w-full text-xl mono bg-slate-800 text-white p-3 rounded border border-slate-700" value="SECRET" placeholder="Message" oninput="runVernam()">
+                    <div class="flex gap-2">
+                        <input id="ver-key" type="text" class="w-full text-xl mono bg-slate-800 text-white p-3 rounded border border-slate-700" value="RANDOM" placeholder="Key" oninput="runVernam()">
+                        <button onclick="genVernamKey()" class="bg-amber-600 px-4 rounded font-bold text-xs text-white">Gen</button>
+                    </div>
+                    <div id="vernam-viz" class="p-4 bg-slate-900/50 rounded-lg space-y-2 max-h-64 overflow-auto"></div>
+                    <div class="p-6 bg-emerald-900/20 border border-emerald-500/30 rounded text-center">
+                        <div id="ver-output" class="text-4xl font-black tracking-widest text-emerald-400">---</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Section -->
+        <section id="section-analysis" class="hidden tab-content">
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="font-bold mb-4 text-white">Frequency Map</h3>
+                    <div id="freq-chart" class="h-48 flex items-end gap-1 border-b border-slate-700 mb-2"></div>
+                    <div class="flex justify-between text-[10px] text-slate-500"><span>A</span><span>M</span><span>Z</span></div>
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="font-bold mb-4 text-white">Kasiski Tracker</h3>
+                    <textarea id="anal-input" class="w-full h-32 text-xs mono mb-4 bg-slate-800 text-white p-3 border border-slate-700 rounded" placeholder="Paste Ciphertext..."></textarea>
+                    <button onclick="runAnal()" class="w-full bg-amber-600 py-2 rounded font-bold text-white">Search Patterns</button>
+                    <div id="anal-results" class="mt-4 space-y-2"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        
+        // Navigation State
+        let navState = {
+            index: -1,
+            input: "",
+            key: "",
+            isEncrypt: true,
+            results: []
+        };
+
+        window.onload = () => {
+            initTable();
+            switchTab('vigenere');
+        };
+
+        function initTable() {
+            const table = document.getElementById('v-table');
+            let html = '<thead><tr><th class="v-cell bg-slate-900 border-r-2 border-b-2 border-slate-700 z-30 sticky left-0 top-0">#</th>';
+            for (let i = 0; i < 26; i++) html += `<th id="h-key-${i}" class="v-cell v-header-key">${ALPHA[i]}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let r = 0; r < 26; r++) {
+                html += `<tr><th id="h-plain-${r}" class="v-cell v-header-plain">${ALPHA[r]}</th>`;
+                for (let c = 0; c < 26; c++) {
+                    const char = ALPHA[(r + c) % 26];
+                    html += `<td id="cell-${r}-${c}" class="v-cell text-slate-500">${char}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function switchTab(t) {
+            document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${t}`).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => {
+                b.className = "px-4 py-2 rounded-md font-semibold transition-all text-sm " + 
+                             (b.id === `btn-${t}` ? "bg-sky-600 text-white" : "text-slate-400 hover:bg-slate-800");
+            });
+        }
+
+        function initializeVigenere(isEncrypt) {
+            const rawInput = document.getElementById('vig-input').value.toUpperCase().replace(/[^A-Z]/g, '');
+            const rawKey = document.getElementById('vig-key').value.toUpperCase().replace(/[^A-Z]/g, '');
+
+            if (!rawInput || !rawKey) return;
+
+            navState = {
+                index: -1,
+                input: rawInput,
+                key: rawKey,
+                isEncrypt: isEncrypt,
+                results: []
+            };
+
+            document.getElementById('vig-output').innerText = "---";
+            document.getElementById('vig-status').innerText = isEncrypt ? "Ready to encrypt..." : "Ready to decrypt...";
+            updateNavUI();
+            clearHighlights();
+        }
+
+        function navigateStep(direction) {
+            const newIndex = navState.index + direction;
+            if (newIndex < -1 || newIndex >= navState.input.length) return;
+
+            navState.index = newIndex;
+            
+            if (navState.index === -1) {
+                document.getElementById('vig-output').innerText = "---";
+                clearHighlights();
+            } else {
+                performStep(navState.index);
+            }
+            
+            updateNavUI();
+        }
+
+        function performStep(idx) {
+            clearHighlights();
+            
+            const char = navState.input[idx];
+            const kChar = navState.key[idx % navState.key.length];
+            
+            const kIdx = ALPHA.indexOf(kChar); 
+            const pIdx = ALPHA.indexOf(char);  
+
+            let rIdx, cIdx;
+
+            if (navState.isEncrypt) {
+                rIdx = pIdx;
+                cIdx = kIdx;
+            } else {
+                rIdx = kIdx;
+                const cipherChar = char;
+                cIdx = (ALPHA.indexOf(cipherChar) - rIdx + 26) % 26;
+            }
+
+            // Visuals
+            document.getElementById(`h-key-${cIdx}`).classList.add('glow-key');
+            document.getElementById(`h-plain-${rIdx}`).classList.add('glow-plain');
+
+            for(let x=0; x<26; x++) {
+                document.getElementById(`cell-${rIdx}-${x}`).classList.add('active-row');
+                document.getElementById(`cell-${x}-${cIdx}`).classList.add('active-col');
+            }
+
+            const target = document.getElementById(`cell-${rIdx}-${cIdx}`);
+            target.classList.add('intersection');
+            target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+            // Update Result String (Recompute up to current index)
+            let resultStr = "";
+            for (let i = 0; i <= idx; i++) {
+                const c_i = navState.input[i];
+                const k_i = navState.key[i % navState.key.length];
+                const ki = ALPHA.indexOf(k_i);
+                const pi = ALPHA.indexOf(c_i);
+                
+                if (navState.isEncrypt) {
+                    resultStr += ALPHA[(pi + ki) % 26];
+                } else {
+                    resultStr += ALPHA[(pi - ki + 26) % 26];
+                }
+            }
+            document.getElementById('vig-output').innerText = resultStr;
+            document.getElementById('vig-status').innerText = `Tracing character: ${char} with key: ${kChar}`;
+        }
+
+        function updateNavUI() {
+            const total = navState.input.length;
+            const current = navState.index + 1;
+            
+            document.getElementById('step-counter').innerText = `${current}/${total}`;
+            document.getElementById('nav-prev').disabled = navState.index < 0;
+            document.getElementById('nav-next').disabled = navState.index >= total - 1;
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.v-cell').forEach(c => {
+                c.classList.remove('glow-key', 'glow-plain', 'active-row', 'active-col', 'intersection');
+            });
+        }
+
+        // Vernam logic
+        function genVernamKey() {
+            const len = document.getElementById('ver-input').value.length;
+            let k = "";
+            for(let i=0; i<len; i++) k += ALPHA[Math.floor(Math.random()*26)];
+            document.getElementById('ver-key').value = k;
+            runVernam();
+        }
+
+        function runVernam() {
+            const input = document.getElementById('ver-input').value.toUpperCase().replace(/[^A-Z]/g, '');
+            const key = document.getElementById('ver-key').value.toUpperCase().replace(/[^A-Z]/g, '');
+            const viz = document.getElementById('vernam-viz');
+            const out = document.getElementById('ver-output');
+            
+            let res = "";
+            let html = "";
+            const limit = Math.min(input.length, key.length);
+
+            for(let i=0; i<limit; i++) {
+                const v1 = ALPHA.indexOf(input[i]);
+                const v2 = ALPHA.indexOf(key[i]);
+                const x = (v1 ^ v2) % 26;
+                res += ALPHA[x];
+                html += `
+                    <div class="flex justify-between items-center text-[10px] mono border-b border-slate-800 pb-1 stagger-item">
+                        <span class="text-sky-400 w-4">${input[i]}</span>
+                        <span class="text-slate-600">${v1.toString(2).padStart(5,'0')}</span>
+                        <span class="text-slate-400">⊕</span>
+                        <span class="text-amber-400 w-4">${key[i]}</span>
+                        <span class="text-slate-600">${v2.toString(2).padStart(5,'0')}</span>
+                        <span class="text-slate-400">=</span>
+                        <span class="text-emerald-400 font-bold">${ALPHA[x]}</span>
+                    </div>
+                `;
+            }
+            viz.innerHTML = html;
+            out.innerText = res || "---";
+        }
+
+        // Analysis
+        function runAnal() {
+            const text = document.getElementById('anal-input').value.toUpperCase().replace(/[^A-Z]/g, '');
+            const res = document.getElementById('anal-results');
+            const chart = document.getElementById('freq-chart');
+            if(text.length < 5) return;
+            chart.innerHTML = "";
+            const counts = new Array(26).fill(0);
+            for(let c of text) counts[ALPHA.indexOf(c)]++;
+            const max = Math.max(...counts);
+            counts.forEach((c, i) => {
+                const bar = document.createElement('div');
+                bar.className = "flex-1 bg-sky-500/40 rounded-t-sm hover:bg-sky-400 transition-all";
+                bar.style.height = `${(c/max)*100}%`;
+                chart.appendChild(bar);
+            });
+            let phtml = "";
+            for(let i=0; i<text.length-3; i++) {
+                const s = text.substring(i, i+3);
+                for(let j=i+3; j<text.length-3; j++) {
+                    if(text.substring(j, j+3) === s) {
+                        phtml += `<div class="bg-slate-800 p-2 rounded flex justify-between text-xs stagger-item">
+                            <span class="text-amber-400 font-bold">${s}</span>
+                            <span class="text-slate-400">Distance: ${j-i}</span>
+                        </div>`;
+                        break;
+                    }
+                }
+            }
+            res.innerHTML = phtml || "No repeating patterns found.";
+        }
+    </script>
+</body>
+</html>

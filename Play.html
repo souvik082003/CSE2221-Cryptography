@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playfair Cipher Interactive Tutorial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseHighlight {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .animate-slide-in {
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        .cipher-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: fit-content;
+        }
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cell-input {
+            background: #3b82f6 !important;
+            color: white !important;
+            border-color: #2563eb !important;
+            z-index: 10;
+            animation: pulseHighlight 1.5s infinite;
+        }
+        .cell-output {
+            background: #10b981 !important;
+            color: white !important;
+            border-color: #059669 !important;
+            z-index: 10;
+        }
+        .cell-output-decrypt {
+            background: #f59e0b !important;
+            color: white !important;
+            border-color: #d97706 !important;
+        }
+        .cell-path {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            opacity: 0.6;
+        }
+        .clickable-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .clickable-row:hover {
+            background-color: #f8fafc;
+        }
+        .rule-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-10 text-slate-800">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-10 animate-slide-in">
+            <h1 class="text-5xl font-black text-slate-900 mb-3 tracking-tight">Playfair Cipher Lab</h1>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                Comprehensive tool for teaching digraph preparation and 5&times;5 matrix rules.
+            </p>
+        </header>
+
+        <!-- Inputs & Rules Info -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+            <!-- Configuration Card -->
+            <div class="lg:col-span-2 bg-white rounded-3xl shadow-xl p-8 border border-slate-200 animate-slide-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Secret Keyword</label>
+                            <input type="text" id="keyword" placeholder="KEYWORD" value="MONARCHY" class="w-full p-4 border-2 border-slate-200 rounded-2xl uppercase focus:border-blue-500 bg-white transition-all text-xl font-mono tracking-widest">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Message to Encrypt</label>
+                            <input type="text" id="plaintext" placeholder="HELLO" value="JAZZ" class="w-full p-4 border-2 border-slate-200 rounded-2xl uppercase focus:border-blue-500 transition-all text-xl font-mono tracking-widest">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center relative">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Live 5 &times; 5 Matrix</h3>
+                        <div id="matrix-display" class="cipher-grid"></div>
+                        <div id="trace-info" class="mt-4 text-[10px] font-bold text-blue-600 h-4 uppercase tracking-tighter"></div>
+                        <button onclick="runPlayfair()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-6 rounded-2xl transition-all shadow-lg hover:shadow-blue-200 active:scale-95 text-lg uppercase tracking-widest">
+                            Process Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules Quick Reference -->
+            <div class="bg-slate-900 text-white rounded-3xl shadow-xl p-8 animate-slide-in" style="animation-delay: 0.2s">
+                <h3 class="text-blue-400 font-bold uppercase tracking-widest text-xs mb-4">Padding Rules (Fillers)</h3>
+                <ul class="space-y-4 text-xs">
+                    <li class="flex gap-3">
+                        <span class="text-blue-400 font-bold">01</span>
+                        <span><b>Repeating:</b> If a pair is "EE", add "X" &rarr; "EX", "E...". If the repeat is "XX", use "Q" instead.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-400 font-bold">02</span>
+                        <span><b>Odd Length:</b> If the message has an odd number of letters, add "X" (or "Q" if the last is "X") to the end.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-400 font-bold">03</span>
+                        <span><b>The 'J' Rule:</b> 'J' is always replaced by 'I' before processing.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden space-y-12">
+            <!-- Step 1: Preprocessing -->
+            <section class="bg-white p-8 rounded-3xl shadow-lg border border-slate-200 animate-slide-in">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-blue-200">1</div>
+                    <h2 class="text-3xl font-extrabold text-slate-800">Digraph (Pair) Preparation</h2>
+                </div>
+                <div id="s1-content" class="space-y-4"></div>
+            </section>
+
+            <!-- Step 2: Encryption -->
+            <section class="bg-white p-8 rounded-3xl shadow-lg border-t-8 border-green-500 animate-slide-in">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="bg-green-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-green-200">2</div>
+                    <h2 class="text-3xl font-extrabold text-green-900">Encryption Walkthrough</h2>
+                </div>
+                <div id="s2-content" class="overflow-x-auto"></div>
+            </section>
+
+            <!-- Step 3: Decryption -->
+            <section class="bg-white p-8 rounded-3xl shadow-lg border-t-8 border-orange-500 animate-slide-in">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="bg-orange-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-orange-200">3</div>
+                    <h2 class="text-3xl font-extrabold text-orange-900">Decryption Walkthrough</h2>
+                </div>
+                <div id="s3-content" class="overflow-x-auto"></div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const ALPHABET = "ABCDEFGHIKLMNOPQRSTUVWXYZ"; // No 'J'
+
+        function generateMatrix(keyword) {
+            let key = keyword.toUpperCase().replace(/J/g, "I").replace(/[^A-Z]/g, "");
+            let combined = key + ALPHABET;
+            let seen = new Set();
+            let matrix = [];
+            for (let char of combined) {
+                if (!seen.has(char)) {
+                    seen.add(char);
+                    matrix.push(char);
+                }
+            }
+            return matrix;
+        }
+
+        function updateMatrixUI() {
+            const keyword = document.getElementById('keyword').value;
+            const matrix = generateMatrix(keyword);
+            const container = document.getElementById('matrix-display');
+            container.innerHTML = '';
+            matrix.forEach((char, idx) => {
+                const r = Math.floor(idx / 5);
+                const c = idx % 5;
+                container.innerHTML += `<div class="grid-cell" id="cell-${char}" data-r="${r}" data-c="${c}">${char}</div>`;
+            });
+        }
+
+        /**
+         * UPDATED: Smart Filler Logic
+         * Handles repeats (EE -> EX) and specifically handles 'X' repeats (XX -> XQ)
+         */
+        function prepareDigraphs(text) {
+            let clean = text.toUpperCase().replace(/J/g, "I").replace(/[^A-Z]/g, "");
+            let digraphs = [];
+            let fillersUsed = [];
+
+            for (let i = 0; i < clean.length; i += 2) {
+                let a = clean[i];
+                let b = clean[i+1];
+
+                if (!b) {
+                    // Rule: Last character has no partner
+                    let filler = (a === 'X') ? 'Q' : 'X';
+                    digraphs.push(a + filler);
+                    fillersUsed.push({ pos: i + 1, char: filler, type: 'End Padding' });
+                } else if (a === b) {
+                    // Rule: Repeating character in the same pair
+                    let filler = (a === 'X') ? 'Q' : 'X';
+                    digraphs.push(a + filler);
+                    fillersUsed.push({ pos: i + 1, char: filler, type: 'Repeat Break' });
+                    i--; // Re-process 'b' as the first letter of the next pair
+                } else {
+                    digraphs.push(a + b);
+                }
+            }
+            return { digraphs, fillersUsed };
+        }
+
+        function getPos(char, matrix) {
+            let idx = matrix.indexOf(char);
+            return { r: Math.floor(idx / 5), c: idx % 5 };
+        }
+
+        function processDigraph(pair, matrix, encrypt = true) {
+            const shift = encrypt ? 1 : 4; 
+            let p1 = getPos(pair[0], matrix);
+            let p2 = getPos(pair[1], matrix);
+            let res = "";
+            let rule = "";
+
+            if (p1.r === p2.r) {
+                rule = "Row";
+                res += matrix[p1.r * 5 + (p1.c + shift) % 5];
+                res += matrix[p2.r * 5 + (p2.c + shift) % 5];
+            } else if (p1.c === p2.c) {
+                rule = "Col";
+                res += matrix[((p1.r + shift) % 5) * 5 + p1.c];
+                res += matrix[((p2.r + shift) % 5) * 5 + p2.c];
+            } else {
+                rule = "Rect";
+                res += matrix[p1.r * 5 + p2.c];
+                res += matrix[p2.r * 5 + p1.c];
+            }
+            return { res, rule, p1, p2 };
+        }
+
+        function clearMatrixHighlights() {
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                cell.classList.remove('cell-input', 'cell-output', 'cell-output-decrypt', 'cell-path');
+            });
+        }
+
+        function traceInMatrix(inputPair, outputPair, rule, isEncrypt) {
+            clearMatrixHighlights();
+            const matrix = generateMatrix(document.getElementById('keyword').value);
+            const info = document.getElementById('trace-info');
+            const p1 = getPos(inputPair[0], matrix);
+            const p2 = getPos(inputPair[1], matrix);
+            const o1 = getPos(outputPair[0], matrix);
+            const o2 = getPos(outputPair[1], matrix);
+
+            info.innerText = `Tracing: ${inputPair} → ${outputPair} (${rule} Rule)`;
+            document.getElementById(`cell-${inputPair[0]}`).classList.add('cell-input');
+            document.getElementById(`cell-${inputPair[1]}`).classList.add('cell-input');
+            const outClass = isEncrypt ? 'cell-output' : 'cell-output-decrypt';
+            document.getElementById(`cell-${outputPair[0]}`).classList.add(outClass);
+            document.getElementById(`cell-${outputPair[1]}`).classList.add(outClass);
+
+            if (rule === "Row") {
+                for(let c=0; c<5; c++) document.getElementById(`cell-${matrix[p1.r * 5 + c]}`).classList.add('cell-path');
+            } else if (rule === "Col") {
+                for(let r=0; r<5; r++) document.getElementById(`cell-${matrix[r * 5 + p1.c]}`).classList.add('cell-path');
+            } else {
+                document.getElementById(`cell-${matrix[p1.r * 5 + p2.c]}`).classList.add('cell-path');
+                document.getElementById(`cell-${matrix[p2.r * 5 + p1.c]}`).classList.add('cell-path');
+            }
+            document.getElementById('matrix-display').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function runPlayfair() {
+            const keyword = document.getElementById('keyword').value;
+            const text = document.getElementById('plaintext').value;
+            const matrix = generateMatrix(keyword);
+            const { digraphs, fillersUsed } = prepareDigraphs(text);
+            
+            updateMatrixUI();
+            document.getElementById('results').classList.remove('hidden');
+
+            let s1Html = `
+                <div class="bg-slate-50 p-6 rounded-2xl border">
+                    <p class="text-sm font-bold text-slate-400 mb-4 uppercase tracking-widest">Constructed Digraphs</p>
+                    <div class="flex flex-wrap gap-4 mb-6">
+                        ${digraphs.map(pair => `
+                            <div class="bg-white px-6 py-4 rounded-2xl border-2 border-blue-100 shadow-sm text-2xl font-mono font-black text-blue-600">
+                                ${pair[0]}${pair[1]}
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${fillersUsed.length > 0 ? `
+                        <div class="space-y-2">
+                            <p class="text-xs font-bold text-slate-500 uppercase">Filler Character Logs:</p>
+                            ${fillersUsed.map(f => `
+                                <div class="text-xs bg-white p-2 border rounded-lg flex justify-between">
+                                    <span class="text-slate-400 font-mono">Position ${f.pos}</span>
+                                    <span class="font-bold text-blue-600">Inserted '${f.char}'</span>
+                                    <span class="italic text-slate-400">${f.type}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="text-xs text-slate-400 italic">No filler characters were needed for this input.</p>'}
+                </div>`;
+            document.getElementById('s1-content').innerHTML = s1Html;
+
+            let encHtml = buildTable(digraphs, matrix, true);
+            document.getElementById('s2-content').innerHTML = encHtml;
+
+            let cipherDigraphs = digraphs.map(d => processDigraph(d, matrix, true).res);
+            let decHtml = buildTable(cipherDigraphs, matrix, false);
+            document.getElementById('s3-content').innerHTML = decHtml;
+            
+            clearMatrixHighlights();
+            document.getElementById('trace-info').innerText = "";
+        }
+
+        function buildTable(pairs, matrix, encrypt) {
+            let html = `<table class="w-full text-left rounded-xl overflow-hidden shadow-sm">
+                <thead class="bg-slate-100 text-xs font-black uppercase text-slate-500 tracking-wider">
+                    <tr><th class="p-5">Input</th><th class="p-5">Rule</th><th class="p-5 text-center">Output</th><th class="p-5"></th></tr>
+                </thead><tbody class="divide-y">`;
+            
+            let finalStr = "";
+            pairs.forEach(p => {
+                let { res, rule } = processDigraph(p, matrix, encrypt);
+                finalStr += res;
+                let ruleClass = rule === "Row" ? "bg-purple-100 text-purple-700" : 
+                                rule === "Col" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700";
+
+                html += `<tr class="clickable-row group" onclick="traceInMatrix('${p}', '${res}', '${rule}', ${encrypt})">
+                    <td class="p-5 text-2xl font-mono font-bold">${p}</td>
+                    <td class="p-5">
+                        <span class="rule-badge ${ruleClass}">${rule}</span>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">${rule === "Rect" ? "Corners" : rule === "Row" ? "Right" : "Down"}</p>
+                    </td>
+                    <td class="p-5 text-center font-black text-3xl ${encrypt ? 'text-green-600' : 'text-orange-600'}">${res}</td>
+                    <td class="p-5 text-right"><span class="text-blue-500 opacity-0 group-hover:opacity-100 font-bold text-xs">Trace &rarr;</span></td>
+                </tr>`;
+            });
+            html += `</tbody></table><div class="mt-6 p-6 bg-slate-900 rounded-3xl text-center shadow-xl">
+                <p class="text-slate-400 uppercase text-xs font-bold tracking-widest mb-1">Resulting String</p>
+                <p class="text-4xl font-black text-white tracking-widest font-mono">${finalStr}</p>
+            </div>`;
+            return html;
+        }
+
+        document.getElementById('keyword').addEventListener('input', () => { updateMatrixUI(); clearMatrixHighlights(); });
+        window.onload = updateMatrixUI;
+    </script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoAttack Interactive Study Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Fira+Code:wght@400;500&display=swap');
+
+        :root {
+            --bg-dark: #020617;
+            --card-dark: #0f172a;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f1f5f9;
+        }
+
+        .node {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: #1e293b;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 20;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .node.active-processing {
+            border-color: var(--accent);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+            transform: scale(1.1);
+        }
+
+        .data-packet {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            z-index: 40;
+            box-shadow: 0 0 15px currentColor;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 900;
+            color: white;
+            pointer-events: none;
+        }
+
+        .active-attack-btn {
+            background: var(--accent) !important;
+            color: #000 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+        }
+
+        .terminal {
+            background: #000;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            border: 1px solid #334155;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pulse-danger {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .scroll-container::-webkit-scrollbar { width: 4px; }
+        .scroll-container::-webkit-scrollbar-track { background: transparent; }
+        .scroll-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 12px; background: rgba(255,255,255,0.05); color: var(--accent); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.1em; }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #94a3b8; }
+        
+        #canvas { min-height: 450px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-6 lg:p-8">
+
+    <div class="max-w-[1600px] mx-auto w-full flex flex-col flex-grow gap-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-500 tracking-tighter">
+                    CRYPTOGRAPHY ATTACK LAB
+                </h1>
+                <p class="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-bold">Educational Interaction Module</p>
+            </div>
+        </header>
+
+        <!-- Top Navigation -->
+        <nav class="w-full">
+            <div class="flex flex-wrap items-center gap-2 p-2 bg-slate-900/40 rounded-2xl border border-slate-800">
+                <button onclick="switchAttack('co')" id="btn-co" class="attack-btn flex-1 min-w-[150px] py-4 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all active-attack-btn">
+                    Ciphertext-Only (COA)
+                </button>
+                <button onclick="switchAttack('kp')" id="btn-kp" class="attack-btn flex-1 min-w-[150px] py-4 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+                    Known-Plaintext (KPA)
+                </button>
+                <button onclick="switchAttack('cp')" id="btn-cp" class="attack-btn flex-1 min-w-[150px] py-4 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+                    Chosen-Plaintext (CPA)
+                </button>
+                <button onclick="switchAttack('cc')" id="btn-cc" class="attack-btn flex-1 min-w-[150px] py-4 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+                    Chosen-Ciphertext (CCA)
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow overflow-hidden">
+            
+            <!-- Left Tile: Descriptions -->
+            <div class="flex flex-col gap-6 h-full overflow-hidden">
+                <section class="glass-card rounded-3xl p-6 lg:p-10 flex-grow scroll-container overflow-y-auto border-t-4" id="accent-border">
+                    <div id="study-content" class="space-y-8">
+                        <!-- Dynamic Content -->
+                    </div>
+
+                    <div class="mt-12 pt-8 border-t border-slate-800">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Summary Table</h3>
+                        <div class="overflow-hidden rounded-xl border border-slate-800 bg-black/20">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Attack Type</th>
+                                        <th>What the Attacker Knows</th>
+                                        <th>Difficulty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-bold text-white">Ciphertext Only</td>
+                                        <td>Only the scrambled message</td>
+                                        <td class="text-rose-400">Hardest</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-bold text-white">Known Plaintext</td>
+                                        <td>A past message + its scrambled version</td>
+                                        <td class="text-amber-400">Moderate</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-bold text-white">Chosen Plaintext</td>
+                                        <td>Can scramble any message they want</td>
+                                        <td class="text-emerald-400">Easier</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-bold text-white">Chosen Ciphertext</td>
+                                        <td>Can unscramble any message they want</td>
+                                        <td class="text-emerald-500 font-bold">Very Effective</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Tile: Simulator -->
+            <div class="flex flex-col gap-6 h-full">
+                <section id="canvas" class="relative flex-grow rounded-3xl bg-slate-950 border border-slate-800 overflow-hidden shadow-2xl flex flex-col">
+                    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+                    
+                    <div id="flow-label" class="absolute top-8 left-1/2 -translate-x-1/2 px-5 py-2 bg-slate-900 border border-slate-700 rounded-full text-[10px] font-black tracking-widest text-sky-400 uppercase opacity-0 transition-opacity z-50">
+                        SIMULATION IN PROGRESS
+                    </div>
+
+                    <!-- Stage -->
+                    <div class="relative flex-grow flex flex-col items-center justify-between py-24 px-12">
+                        <div class="flex justify-between w-full">
+                            <div id="alice" class="node">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="text-sky-400 w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                <span class="absolute -top-8 text-[10px] font-black text-slate-500 tracking-widest">ALICE</span>
+                            </div>
+                            <div id="bob" class="node">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="text-indigo-400 w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                <span class="absolute -top-8 text-[10px] font-black text-slate-500 tracking-widest">BOB</span>
+                            </div>
+                        </div>
+
+                        <div id="eve" class="node pulse-danger border-red-500/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="text-red-500 w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+                            <span class="absolute -bottom-8 text-[10px] font-black text-red-500 tracking-widest uppercase">Eve (Adversary)</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-slate-500 font-black tracking-widest uppercase">Evidence Log</span>
+                            <div class="text-xs font-mono text-white">DATA_CHUNKS: <span id="evidence-count" class="text-sky-400 font-bold">0</span></div>
+                        </div>
+                        <button onclick="executeAnimation()" id="action-btn" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-widest px-10 py-4 rounded-2xl transition-all active:scale-95">
+                            Run Simulator
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Mini Console -->
+                <div class="terminal h-40 p-4 overflow-hidden flex flex-col">
+                    <div class="flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-[9px] font-mono text-slate-500 uppercase">live_intercept.sh</span>
+                    </div>
+                    <div id="terminal-content" class="flex-grow overflow-y-auto space-y-1 text-[11px] text-emerald-400 font-mono scroll-container">
+                        <div class="text-slate-600 italic">// Ready for intercept...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const studyData = {
+            co: {
+                title: "Ciphertext-Only Attack (COA)",
+                intro: "In cryptography, attacks aren't always about hacking a password; they are often about how much information an attacker (Eve) has access to before they try to break the code. This is the <b>hardest</b> situation for an attacker.",
+                knows: "Only the encrypted message (the ciphertext).",
+                goal: "To find the original message or the secret key.",
+                example: "You see a message that says <b>WTAAD</b>. You don't know it’s a Caesar Cipher, and you don't know what it means. You have to guess based on patterns or frequency of letters.",
+                color: "#38bdf8",
+                log: "TAP_ACTIVE: Intercepting unknown stream Alice -> Bob..."
+            },
+            kp: {
+                title: "Known Plaintext Attack (KPA)",
+                intro: "The attacker is a bit <b>'luckier'</b> here. This often happens through historical data or predictable communication headers.",
+                knows: "One or more pairs of messages where they know both the original text (plaintext) and its encrypted version (ciphertext).",
+                goal: "To figure out the secret key so they can decrypt future messages.",
+                example: "During WWII, codebreakers sometimes knew a message would always start with <b>'Weather Report'</b>. By comparing 'Weather Report' (plaintext) with the coded version (ciphertext), they could work backward to find the key.",
+                color: "#10b981",
+                log: "DATABASE_MATCH: Correlating historical P: 'Weather' with current C buffer..."
+            },
+            cp: {
+                title: "Chosen Plaintext Attack (CPA)",
+                intro: "In this version, the attacker is <b>more active</b> and directly influences the encryption process.",
+                knows: "Access to the encryption machine itself. They can put any message they want into it and see what comes out.",
+                goal: "By choosing specific patterns (like all 'AAAAA' or '12345'), they can see how the machine reacts and figure out the secret logic or key.",
+                example: "You find a target's computer unlocked with an encryption program open. You type <b>'HELLO'</b> to see what it turns into. You don't have the key yet, but you can 'test' the system as much as you want.",
+                color: "#f59e0b",
+                log: "ORACLE_REQ: Feeding custom input 'AAAAA' into Alice's encryption system..."
+            },
+            cc: {
+                title: "Chosen Ciphertext Attack (CCA)",
+                intro: "This is the reverse of the previous one and is often used against <b>'Public Key'</b> systems. It is <b>very effective</b>.",
+                knows: "Access to the decryption machine. They can pick a piece of ciphertext and get the machine to show them the plaintext.",
+                goal: "To reveal the secret key by analyzing how the machine decrypts 'tricky' or specially crafted scrambled messages.",
+                example: "You send a weird, garbled piece of code to a server. The server tries to decrypt it and sends back an <b>error message</b> or a partial result that accidentally reveals a clue about the secret key.",
+                color: "#f43f5e",
+                log: "ORACLE_REQ: Submitting crafted C to Bob's decryption oracle. Monitoring response..."
+            }
+        };
+
+        let currentType = 'co';
+        let isAnimating = false;
+        let count = 0;
+
+        function switchAttack(type) {
+            if (isAnimating) return;
+            currentType = type;
+            count = 0;
+            document.getElementById('evidence-count').innerText = "0";
+
+            document.querySelectorAll('.attack-btn').forEach(btn => btn.classList.remove('active-attack-btn'));
+            document.getElementById(`btn-${type}`).classList.add('active-attack-btn');
+
+            const info = studyData[type];
+            document.getElementById('accent-border').style.borderColor = info.color;
+
+            document.getElementById('study-content').innerHTML = `
+                <div class="space-y-4">
+                    <h2 class="text-4xl font-black text-white leading-tight">${info.title}</h2>
+                    <p class="text-slate-400 text-lg leading-relaxed">${info.intro}</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 rounded-3xl bg-slate-900/50 border border-slate-800">
+                        <h4 class="text-[10px] font-black text-sky-400 uppercase tracking-widest mb-3">What they have</h4>
+                        <p class="text-sm text-slate-200 font-medium">${info.knows}</p>
+                    </div>
+                    <div class="p-6 rounded-3xl bg-slate-900/50 border border-slate-800">
+                        <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3">The Goal</h4>
+                        <p class="text-sm text-slate-200 font-medium">${info.goal}</p>
+                    </div>
+                </div>
+
+                <div class="p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/20">
+                    <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Real-World Example</h4>
+                    <p class="text-sm text-slate-300 italic leading-relaxed">${info.example}</p>
+                </div>
+            `;
+
+            log(`Lab context switched to ${info.title}. Intercept ready.`);
+        }
+
+        function log(msg, colorClass = "text-slate-500") {
+            const term = document.getElementById('terminal-content');
+            const div = document.createElement('div');
+            div.className = colorClass;
+            div.innerHTML = `<span class="text-slate-700 font-mono mr-2">></span> ${msg}`;
+            term.prepend(div);
+            if (term.children.length > 25) term.lastElementChild.remove();
+        }
+
+        async function executeAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            document.getElementById('action-btn').disabled = true;
+            document.getElementById('action-btn').innerText = "EXECUTING...";
+            
+            const label = document.getElementById('flow-label');
+            label.style.opacity = 1;
+
+            const alice = document.getElementById('alice');
+            const bob = document.getElementById('bob');
+            const eve = document.getElementById('eve');
+
+            try {
+                switch(currentType) {
+                    case 'co':
+                        log("ALICE -> BOB communication initiated.", "text-sky-400");
+                        await animatePacket('#38bdf8', 'C', alice, bob);
+                        log("EVE copying encrypted packet from wire...", "text-rose-500");
+                        await animatePacket('#ef4444', 'C', alice, eve);
+                        break;
+                    case 'kp':
+                        log("Analyzing past transmission pairs...", "text-emerald-400");
+                        await animatePacket('#10b981', 'P', alice, bob);
+                        eve.classList.add('active-processing');
+                        await animatePacket('#ef4444', 'P/C', alice, eve);
+                        await new Promise(r => setTimeout(r, 600));
+                        eve.classList.remove('active-processing');
+                        break;
+                    case 'cp':
+                        log("EVE sending chosen data to Alice's encryptor...", "text-amber-500");
+                        await animatePacket('#f59e0b', 'P', eve, alice);
+                        alice.classList.add('active-processing');
+                        await new Promise(r => setTimeout(r, 600));
+                        alice.classList.remove('active-processing');
+                        log("Encryption Oracle leaked Ciphertext result.", "text-emerald-400");
+                        await animatePacket('#ef4444', 'C', alice, eve);
+                        break;
+                    case 'cc':
+                        log("EVE probing Bob's decryption oracle with crafted C...", "text-rose-500");
+                        await animatePacket('#f43f5e', 'C', eve, bob);
+                        bob.classList.add('active-processing');
+                        await new Promise(r => setTimeout(r, 600));
+                        bob.classList.remove('active-processing');
+                        log("Oracle response captured. Analyzing metadata...", "text-rose-400");
+                        await animatePacket('#ef4444', 'ERR', bob, eve);
+                        break;
+                }
+                count++;
+                document.getElementById('evidence-count').innerText = count;
+                log(studyData[currentType].log, "text-emerald-500 font-bold");
+            } finally {
+                isAnimating = false;
+                document.getElementById('action-btn').disabled = false;
+                document.getElementById('action-btn').innerText = "RUN SIMULATOR";
+                setTimeout(() => label.style.opacity = 0, 800);
+            }
+        }
+
+        function animatePacket(color, text, fromNode, toNode) {
+            return new Promise(resolve => {
+                const canvas = document.getElementById('canvas');
+                const p = document.createElement('div');
+                p.className = 'data-packet';
+                p.style.backgroundColor = color;
+                p.innerText = text;
+                canvas.appendChild(p);
+
+                const crect = canvas.getBoundingClientRect();
+                const frect = fromNode.getBoundingClientRect();
+                const trect = toNode.getBoundingClientRect();
+
+                const startX = (frect.left + frect.width/2) - crect.left - 10;
+                const startY = (frect.top + frect.height/2) - crect.top - 10;
+                const endX = (trect.left + trect.width/2) - crect.left - 10;
+                const endY = (trect.top + trect.height/2) - crect.top - 10;
+
+                p.animate([
+                    { left: startX+'px', top: startY+'px', opacity: 0, transform: 'scale(0.5)' },
+                    { left: startX+'px', top: startY+'px', opacity: 1, transform: 'scale(1)', offset: 0.1 },
+                    { left: endX+'px', top: endY+'px', opacity: 1, transform: 'scale(1)', offset: 0.9 },
+                    { left: endX+'px', top: endY+'px', opacity: 0, transform: 'scale(0.5)' }
+                ], {
+                    duration: 1000,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                }).onfinish = () => {
+                    p.remove();
+                    resolve();
+                };
+            });
+        }
+
+        window.onload = () => switchAttack('co');
+    </script>
+</body>
+</html>
