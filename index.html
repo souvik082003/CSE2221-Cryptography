@@ -13,6 +13,7 @@
             --card: #161b2c;
             --accent: #00d2ff;
             --accent-danger: #f87171;
+            --accent-resource: #10b981; /* Green for resources */
             --text-p: #94a3b8;
         }
 
@@ -28,222 +29,109 @@
             min-height: 100vh;
         }
 
-        /* Header Section */
-        .header {
-            text-align: center;
-            margin-bottom: 60px;
-            padding: 0 20px;
-        }
+        .header { text-align: center; margin-bottom: 50px; padding: 0 20px; }
+        .header h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        
+        .section-title { width: 90%; max-width: 1200px; margin: 40px 0 20px 0; font-size: 1.5rem; font-weight: 700; border-left: 4px solid var(--accent); padding-left: 15px; }
 
-        .header h1 {
-            font-size: clamp(2rem, 5vw, 3.2rem);
-            margin: 0;
-            background: linear-gradient(135deg, #fff, var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .header p {
-            color: var(--text-p);
-            font-size: 1.1rem;
-            margin-top: 10px;
-        }
-
-        /* Dashboard Grid */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            max-width: 1200px;
-            width: 90%;
-            margin-bottom: 100px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; max-width: 1200px; width: 90%; margin-bottom: 40px; }
 
         .cipher-card {
             background: var(--card);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 24px;
-            padding: 35px;
+            padding: 30px;
             text-decoration: none;
             color: white;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.4s ease;
             display: flex;
             flex-direction: column;
-            position: relative;
-            overflow: hidden;
         }
 
-        .cipher-card:hover {
-            transform: translateY(-12px);
-            border-color: var(--accent);
-            box-shadow: 0 20px 40px rgba(0, 210, 255, 0.15);
-        }
+        .cipher-card:hover { transform: translateY(-10px); border-color: var(--accent); box-shadow: 0 20px 40px rgba(0, 210, 255, 0.15); }
 
-        /* Icon Box */
-        .icon-box {
-            width: 55px;
-            height: 55px;
-            background: rgba(0, 210, 255, 0.1);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            color: var(--accent);
-            margin-bottom: 20px;
-        }
+        .icon-box { width: 50px; height: 50px; background: rgba(0, 210, 255, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent); margin-bottom: 20px; }
 
-        .attack-card .icon-box {
-            background: rgba(248, 113, 113, 0.1);
-            color: var(--accent-danger);
-        }
-        
-        .attack-card:hover {
-            border-color: var(--accent-danger);
-            box-shadow: 0 20px 40px rgba(248, 113, 113, 0.15);
-        }
+        /* Resource Card Specifics */
+        .resource-card:hover { border-color: var(--accent-resource); box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15); }
+        .resource-card .icon-box { background: rgba(16, 185, 129, 0.1); color: var(--accent-resource); }
 
-        .cipher-card h3 {
-            font-size: 1.4rem;
-            margin: 0 0 10px 0;
-            font-weight: 700;
-        }
+        /* Attack Card Specifics */
+        .attack-card:hover { border-color: var(--accent-danger); box-shadow: 0 20px 40px rgba(248, 113, 113, 0.15); }
+        .attack-card .icon-box { background: rgba(248, 113, 113, 0.1); color: var(--accent-danger); }
 
-        .cipher-card p {
-            color: var(--text-p);
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin: 0;
-        }
+        .cipher-card h3 { font-size: 1.3rem; margin: 0 0 10px 0; }
+        .cipher-card p { color: var(--text-p); font-size: 0.9rem; line-height: 1.5; margin: 0; }
 
-        /* Professional Footer */
-        footer {
-            width: 100%;
-            background: #070a13;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding: 60px 0 30px 0;
-            margin-top: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .footer-content {
-            max-width: 1100px;
-            width: 85%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 30px;
-        }
-
-        .author-info h4 {
-            margin: 0;
-            font-size: 1.4rem;
-            letter-spacing: -0.5px;
-        }
-
-        .author-info p {
-            margin: 5px 0;
-            color: var(--text-p);
-            font-size: 0.9rem;
-        }
-
-        .muj-brand {
-            color: var(--accent);
-            font-weight: 800;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .github-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #1e293b;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: 0.3s;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .github-link:hover {
-            background: #fff;
-            color: #0b0f1a;
-            transform: scale(1.05);
-        }
-
-        .copyright {
-            margin-top: 50px;
-            font-size: 0.8rem;
-            color: #4b5563;
-        }
+        footer { width: 100%; background: #070a13; border-top: 1px solid rgba(255,255,255,0.05); padding: 60px 0 30px 0; margin-top: 80px; display: flex; flex-direction: column; align-items: center; }
+        .footer-content { max-width: 1100px; width: 85%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 30px; }
+        .github-link { display: flex; align-items: center; gap: 12px; background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); transition: 0.3s; }
+        .github-link:hover { background: #fff; color: #0b0f1a; }
     </style>
 </head>
 <body>
 
     <header class="header">
         <h1>Cryptography Interactive Lab</h1>
-        <p>A specialized visualization toolkit for CSE students</p>
+        <p>Simulation Tools & Academic Resources</p>
     </header>
 
+    <div class="section-title">Interactive Modules</div>
     <main class="grid">
         <a href="Vigenere.html" class="cipher-card">
             <div class="icon-box"><i class="fas fa-key"></i></div>
             <h3>Vigenère Cipher</h3>
-            <p>Implement polyalphabetic substitution using keyword-based shifts and a Vigenère table.</p>
+            <p>Polyalphabetic substitution using keyword-based shifts.</p>
         </a>
-
         <a href="Hill.html" class="cipher-card">
             <div class="icon-box"><i class="fas fa-th"></i></div>
             <h3>Hill Cipher</h3>
-            <p>Visualize polygraphic substitution based on linear algebra and modular matrix multiplication.</p>
+            <p>Matrix-based encryption using modular linear algebra.</p>
         </a>
-
         <a href="Play.html" class="cipher-card">
             <div class="icon-box"><i class="fas fa-border-all"></i></div>
             <h3>Playfair Cipher</h3>
-            <p>Simulate digraph encryption using a 5x5 character matrix and classic rectangle rules.</p>
+            <p>Digraph substitution using a 5x5 character matrix.</p>
         </a>
-
         <a href="tranpost_railfence.html" class="cipher-card">
             <div class="icon-box"><i class="fas fa-wave-square"></i></div>
             <h3>Rail Fence</h3>
-            <p>Observe transposition patterns by rearranging characters in a zig-zag "fence" structure.</p>
+            <p>Transposition pattern visualization using zig-zag rails.</p>
         </a>
-
         <a href="Attacks.html" class="cipher-card attack-card">
             <div class="icon-box"><i class="fas fa-user-secret"></i></div>
             <h3>Cryptanalysis</h3>
-            <p>Test various attack vectors including Brute Force and Frequency Analysis on common ciphers.</p>
+            <p>Tools for Brute Force and Frequency Analysis.</p>
         </a>
     </main>
+
+    <div class="section-title">Study Material & Notes</div>
+    <div class="grid">
+        <a href="https://mujmanipal-my.sharepoint.com/:f:/g/personal/muj0373_muj_manipal_edu/IgD9cS4N2rbsSoNSPQWrpJqHAT80L65CMevPhg8Llof8f3s?e=Vw0MTk" target="_blank" class="cipher-card resource-card">
+            <div class="icon-box"><i class="fas fa-folder-open"></i></div>
+            <h3>Rawat Sir's Course</h3>
+            <p>Access official course folders, presentations, and shared academic files on SharePoint.</p>
+        </a>
+
+        <a href="https://mujcampus-my.sharepoint.com/:f:/g/personal/aditya_sinha_jaipur_manipal_edu/IgDak9Bych8JR79Ko5oXE350AYUOlZE22hSkSVTlRGV1xAI?e=ac1Xmn" target="_blank" class="cipher-card resource-card">
+            <div class="icon-box"><i class="fas fa-book-open"></i></div>
+            <h3>Handwritten Notes</h3>
+            <p>Detailed notes by Aditya Sinha covering core cryptography and security concepts.</p>
+        </a>
+    </div>
 
     <footer>
         <div class="footer-content">
             <div class="author-info">
-                <span class="muj-brand">Manipal University Jaipur</span>
-                <h4>Aditya Sinha</h4>
-                <p>Assistant Professor | Department of CSE</p>
+                <span style="color: var(--accent); font-weight: 800; font-size: 0.75rem; text-transform: uppercase;">Manipal University Jaipur</span>
+                <h4 style="margin: 5px 0;">Aditya Sinha</h4>
+                <p style="margin: 0; font-size: 0.9rem; color: var(--text-p);">Assistant Professor | Department of CSE</p>
             </div>
-            <div class="social">
-                <a href="https://github.com/adityasinha-1988" target="_blank" class="github-link">
-                    <i class="fab fa-github"></i>
-                    View GitHub Profile
-                </a>
-            </div>
+            <a href="https://github.com/adityasinha-1988" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> View GitHub Profile
+            </a>
         </div>
-        <div class="copyright">
-            &copy; 2026 Cryptography Lab Project. Built for Academic Excellence.
-        </div>
+        <div style="margin-top: 40px; font-size: 0.75rem; color: #4b5563;">&copy; 2026 Cryptography Lab Project.</div>
     </footer>
 
 </body>
